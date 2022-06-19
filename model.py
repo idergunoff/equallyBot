@@ -27,6 +27,7 @@ class Event(Base):
     id = Column(Integer, primary_key=True)
     user_id = Column(BigInteger, ForeignKey('user.telegram_id'))
     title = Column(String)
+    current_event = Column(Boolean, default=True)
 
     user = relationship('User', back_populates='events')
     participants = relationship('Participant', back_populates='event')
