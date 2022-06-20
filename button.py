@@ -7,6 +7,9 @@ kb_start = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
 
 cb_event = CallbackData("event", "event_id")
 cb_event_del = CallbackData("event_del", "event_id")
+cb_participant_del = CallbackData("participant_del", "participant_id")
+cb_part_exp = CallbackData("part_exp", "part_id")
+cb_exp_del = CallbackData('exp_del', 'exp_id')
 
 btn_new_event = InlineKeyboardButton(emojize('Новое событие:tada:'), callback_data='new_event')
 btn_del_event = InlineKeyboardButton(emojize('Удалить событие:wastebasket:'), callback_data='del_event')
@@ -26,6 +29,7 @@ btn_del_exclusion = InlineKeyboardButton(emojize(':minus::no_entry_sign:'), call
 btn_report = InlineKeyboardButton(emojize(':receipt:Отчёт'), callback_data='report')
 
 btn_back = InlineKeyboardButton(emojize('Назад:arrow_left:'), callback_data='back')
+btn_back_to_event = InlineKeyboardButton(emojize('Назад:arrow_left:'), callback_data='back_to_event')
 
 
 kb_current_event = InlineKeyboardMarkup(row_width=3)

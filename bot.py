@@ -3,10 +3,9 @@ from io import BytesIO
 
 from aiogram.utils import executor
 
-from config import *
-from button import *
+from participant import *
+from expense import *
 from fruit import *
-from func import *
 
 
 @dp.message_handler(commands=['start'])
@@ -22,7 +21,7 @@ async def start(msg: types.Message):
         session.add(new_user)
         session.commit()
     kb_events = InlineKeyboardMarkup(row_width=3)
-    events = session.query(Event).filter(Event.user_id == msg.from_user.id).all()
+    events = session.query(Event).filter(Event.user_id == msg.from_user.id).order_by(Event.id).all()
     for i in events:
         kb_events.insert(InlineKeyboardButton(text=i.title, callback_data=cb_event.new(event_id=i.id)))
     kb_events.row(btn_new_event, btn_del_event)
@@ -57,7 +56,7 @@ async def add_event(msg: types.Message, state: FSMContext):
 @dp.callback_query_handler(text='del_event')
 async def choose_event_for_del(call: types.CallbackQuery):
     kb_event_del = InlineKeyboardMarkup(row_width=3)
-    events = session.query(Event).filter(Event.user_id == call.from_user.id).all()
+    events = session.query(Event).filter(Event.user_id == call.from_user.id).order_by(Event.id).all()
     for i in events:
         kb_event_del.insert(InlineKeyboardButton(text=i.title, callback_data=cb_event_del.new(event_id=i.id)))
     kb_event_del.row(btn_back)
@@ -71,7 +70,7 @@ async def del_event(call: types.CallbackQuery, callback_data: dict):
     session.query(Event).filter(Event.id == callback_data['event_id']).delete()
     session.commit()
     kb_events = InlineKeyboardMarkup(row_width=3)
-    events = session.query(Event).filter(Event.user_id == call.from_user.id).all()
+    events = session.query(Event).filter(Event.user_id == call.from_user.id).order_by(Event.id).all()
     for i in events:
         kb_events.insert(InlineKeyboardButton(text=i.title, callback_data=cb_event.new(event_id=i.id)))
     kb_events.row(btn_new_event, btn_del_event)
@@ -83,12 +82,19 @@ async def del_event(call: types.CallbackQuery, callback_data: dict):
 @dp.callback_query_handler(text='back')
 async def back(call: types.CallbackQuery):
     kb_events = InlineKeyboardMarkup(row_width=3)
-    events = session.query(Event).filter(Event.user_id == call.from_user.id).all()
+    events = session.query(Event).filter(Event.user_id == call.from_user.id).order_by(Event.id).all()
     for i in events:
         kb_events.insert(InlineKeyboardButton(text=i.title, callback_data=cb_event.new(event_id=i.id)))
     kb_events.row(btn_new_event, btn_del_event)
     mes = emojize(f"Выберите событие или создайте новое.")
     await call.message.edit_text(mes, parse_mode=types.ParseMode.HTML, reply_markup=kb_events)
+    await call.answer()
+
+
+@dp.callback_query_handler(text='back_to_event')
+async def back_to_event(call: types.CallbackQuery):
+    mes = emojize(f'Выбрано событие - <b>{await get_current_event_title(call.from_user.id)}</b>')
+    await call.message.edit_text(mes, reply_markup=kb_current_event)
     await call.answer()
 
 
@@ -102,31 +108,7 @@ async def del_event(call: types.CallbackQuery, callback_data: dict):
     await call.answer()
 
 
-@dp.callback_query_handler(text='add_participant')
-async def add_participant(call: types.CallbackQuery):
-    await EquallyStates.NEW_PARTICIPANT.set()
-    await call.message.delete()
-    mes = emojize(f'Отправь имя участника события <b>{await get_current_event_title(call.from_user.id)}</b>.')
-    await bot.send_message(call.from_user.id, mes)
 
-
-@dp.message_handler(state=EquallyStates.NEW_PARTICIPANT)
-async def add_participant_db(msg: types.Message, state: FSMContext):
-    event_id = await get_current_event_id(msg.from_user.id)
-    check_name = session.query(Participant).filter(Participant.name == msg.text, Participant.event_id == event_id).count()
-    if check_name > 0:
-        mes = f'Участник <b>{msg.text}</b> уже существует. Отправь другое имя.'
-        await bot.send_message(msg.from_user.id, mes)
-    else:
-        await state.finish()
-        new_participant = Participant(name=msg.text, event_id=event_id)
-        session.add(new_participant)
-        session.commit()
-        mes = emojize(f'Участники события - <b>{await get_current_event_title(msg.from_user.id)}</b>:')
-        current_event = await get_current_event(msg.from_user.id)
-        for i in current_event.participants:
-            mes += emojize(f'\n:bust_in_silhouette: <em>{i.name}</em>')
-        await bot.send_message(msg.from_user.id, mes, reply_markup=kb_current_event)
 
 
 # @dp.message_handler(content_types=['photo'])

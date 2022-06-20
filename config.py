@@ -5,6 +5,7 @@ from aiogram.contrib.middlewares.logging import LoggingMiddleware
 from aiogram import types
 
 from model import *
+from datetime import datetime
 
 TOKEN = '5326957770:AAHFXPFO5eDQgi1z5ylOI3We_tAczKg4U3Q'
 

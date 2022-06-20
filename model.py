@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, Column, Integer, BigInteger, String, Date, DateTime, Time, Text, Boolean, ForeignKey, Float, func
+from sqlalchemy import create_engine, Column, Integer, BigInteger, String, Date, DateTime, Time, Text, Boolean, ForeignKey, Float, func, desc
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 
@@ -31,6 +31,7 @@ class Event(Base):
 
     user = relationship('User', back_populates='events')
     participants = relationship('Participant', back_populates='event')
+    expenses = relationship('Expense', back_populates='event')
 
 
 class Participant(Base):
@@ -51,12 +52,15 @@ class Expense(Base):
     __tablename__ = 'expense'
 
     id = Column(Integer, primary_key=True)
-    title = Column(String)
-    price = Column(Float)
+    title = Column(String, default='')
+    price = Column(Float, default=0)
     participant_id = Column(Integer, ForeignKey('participant.id'))
+    event_id = Column(Integer, ForeignKey('event.id'))
+    date = Column(DateTime)
 
     participant = relationship('Participant', back_populates='expenses')
     exclusions = relationship('Exclusion', back_populates='expense')
+    event = relationship('Event', back_populates='expenses')
 
 
 class Exclusion(Base):
@@ -65,6 +69,8 @@ class Exclusion(Base):
     id = Column(Integer, primary_key=True)
     participant_id = Column(Integer, ForeignKey('participant.id'))
     expense_id = Column(Integer, ForeignKey('expense.id'))
+    event_id = Column(Integer, ForeignKey('event.id'))
+    date = Column(DateTime)
 
     participant = relationship('Participant', back_populates='exclusions')
     expense = relationship('Expense', back_populates='exclusions')
