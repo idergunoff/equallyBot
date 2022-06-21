@@ -32,6 +32,7 @@ class Event(Base):
     user = relationship('User', back_populates='events')
     participants = relationship('Participant', back_populates='event')
     expenses = relationship('Expense', back_populates='event')
+    exclusions = relationship('Exclusion', back_populates='event')
 
 
 class Participant(Base):
@@ -74,6 +75,7 @@ class Exclusion(Base):
 
     participant = relationship('Participant', back_populates='exclusions')
     expense = relationship('Expense', back_populates='exclusions')
+    event = relationship('Event', back_populates='exclusions')
 
 
 Base.metadata.create_all(engine)

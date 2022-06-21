@@ -55,7 +55,7 @@ async def choose_participant_for_del(call: types.CallbackQuery):
 async def del_event(call: types.CallbackQuery, callback_data: dict):
     name = session.query(Participant.name).filter(Participant.id == callback_data['participant_id']).first()[0]
     if len(session.query(Participant).filter(Participant.id == callback_data['participant_id']).first().expenses) > 0:
-        mes = emojize(f'Участника <b>{name}</b>: нельзя удалить, сначала удалите его траты')
+        mes = emojize(f'Участника :bust_in_silhouette:<b>{name}</b> нельзя удалить, сначала удалите его траты:moneybag:')
     else:
         session.query(Participant).filter(Participant.id == callback_data['participant_id']).delete()
         session.commit()

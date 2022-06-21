@@ -32,7 +32,7 @@ async def add_title_expense(msg: types.Message, state: FSMContext):
     session.query(Expense).filter(Expense.id == expense_id).update({'title': msg.text}, synchronize_session='fetch')
     session.commit()
     await EquallyStates.NEW_PRICE.set()
-    mes = emojize('Отправь стоимость траты:')
+    mes = emojize(f'Отправь стоимость траты <b>{msg.text}</b>:')
     await bot.send_message(msg.from_user.id, mes)
 
 
