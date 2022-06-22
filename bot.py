@@ -68,6 +68,7 @@ async def choose_event_for_del(call: types.CallbackQuery):
 @dp.callback_query_handler(cb_event_del.filter())
 async def del_event(call: types.CallbackQuery, callback_data: dict):
     title_event = session.query(Event.title).filter(Event.id == callback_data['event_id']).first()[0]
+    # todo: удаление каскадно
     session.query(Event).filter(Event.id == callback_data['event_id']).delete()
     session.commit()
     kb_events = InlineKeyboardMarkup(row_width=3)
@@ -109,8 +110,52 @@ async def del_event(call: types.CallbackQuery, callback_data: dict):
     await call.answer()
 
 
-
-
+@dp.callback_query_handler(text='report')
+async def report(call: types.CallbackQuery):
+    mes = emojize(':receipt:Отчёт:')
+    current_event = await get_current_event(call.from_user.id)
+    spent, debt = dict(), dict()
+    for i in current_event.participants:
+        spent[i.name], debt[i.name] = 0, 0
+    for i in current_event.expenses:
+        spent[i.participant.name] += i.price
+        count_part = len(current_event.participants) - len(i.exclusions)
+        excl_names = [k.participant.name for k in i.exclusions]
+        for j in current_event.participants:
+            if j.name not in excl_names:
+                debt[j.name] = round((debt[j.name] + i.price / count_part), 2)
+    for name in debt:
+        session.query(Participant).filter(Participant.event_id == current_event.id, Participant.name == name).\
+            update({'spent': spent[name], 'debt': debt[name]}, synchronize_session='fetch')
+        if spent[name] > 0:
+            diff = round((spent[name] - debt[name]), 2)
+            if diff > 0:
+                spent[name], debt[name] = diff, 0
+            else:
+                spent[name], debt[name] = 0, abs(diff)
+    session.commit()
+    for name in debt:
+        part = session.query(Participant).filter(Participant.event_id == current_event.id, Participant.name == name).first()
+        mes += emojize(f'\n\n<u>:bust_in_silhouette:<b>{name}</b></u>')
+        if len(part.exclusions) > 0:
+            for i in part.exclusions:
+                mes += emojize(f'\n:no_entry_sign:<s>{i.expense.title} (<em>{str(i.expense.price)})</em></s>')
+        mes += emojize(f'\n:moneybag:Потратил: {str(part.spent)}\n:pinched_fingers:Доля трат: {str(part.debt)}')
+        if part.spent > part.debt:
+            mes += emojize(f'\n{name}     :point_right:     :zero:')
+        while debt[name] >= 0.1:
+            for key in debt:
+                if spent[key] > 0:
+                    diff = round((spent[key] - debt[name]), 2)
+                    if diff > 0:
+                        mes += emojize(f'\n{name}     :point_right:     {key}     <b>{str(debt[name])}</b>:money_with_wings:')
+                        spent[key], debt[name] = diff, 0
+                    else:
+                        mes += emojize(f'\n{name}     :point_right:     {key}     <b>{str(spent[key])}</b>:money_with_wings:')
+                        spent[key], debt[name] = 0, abs(diff)
+                    break
+    await call.message.edit_text(mes, reply_markup=kb_current_event)
+    await call.answer()
 
 # @dp.message_handler(content_types=['photo'])
 # async def photo_handler(msg: types.Message):
