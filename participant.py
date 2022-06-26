@@ -10,7 +10,7 @@ async def add_participant(call: types.CallbackQuery):
         await call.message.delete()
     except MessageCantBeDeleted:
         pass
-    mes = emojize(f'Отправь имя участника события <b>{await get_current_event_title(call.from_user.id)}</b>.')
+    mes = emojize(f'Отправь имя участника события <b>{await get_current_event_title(call.from_user.id)}</b>.', language='alias')
     await bot.send_message(call.from_user.id, mes)
 
 
@@ -26,19 +26,19 @@ async def add_participant_db(msg: types.Message, state: FSMContext):
         new_participant = Participant(name=msg.text, event_id=event_id)
         session.add(new_participant)
         session.commit()
-        mes = emojize(f'Участник <b>{msg.text}</b> добавлен.\nУчастники события - <b>{await get_current_event_title(msg.from_user.id)}</b>:')
+        mes = emojize(f'Участник <b>{msg.text}</b> добавлен.\nУчастники события - <b>{await get_current_event_title(msg.from_user.id)}</b>:', language='alias')
         current_event = await get_current_event(msg.from_user.id)
         for i in current_event.participants:
-            mes += emojize(f'\n:bust_in_silhouette: <em>{i.name}</em>')
+            mes += emojize(f'\n:bust_in_silhouette: <em>{i.name}</em>', language='alias')
         await bot.send_message(msg.from_user.id, mes, reply_markup=kb_current_event)
 
 
 @dp.callback_query_handler(text='participants')
 async def show_participants(call: types.CallbackQuery):
-    mes = emojize(f'Участники события - <b>{await get_current_event_title(call.from_user.id)}</b>:')
+    mes = emojize(f'Участники события - <b>{await get_current_event_title(call.from_user.id)}</b>:', language='alias')
     current_event = await get_current_event(call.from_user.id)
     for i in current_event.participants:
-        mes += emojize(f'\n:bust_in_silhouette: <em>{i.name}</em>')
+        mes += emojize(f'\n:bust_in_silhouette: <em>{i.name}</em>', language='alias')
     await call.message.edit_text(mes, reply_markup=kb_current_event)
     await call.answer()
 
@@ -58,15 +58,15 @@ async def choose_participant_for_del(call: types.CallbackQuery):
 async def del_event(call: types.CallbackQuery, callback_data: dict):
     name = session.query(Participant.name).filter(Participant.id == callback_data['participant_id']).first()[0]
     if len(session.query(Participant).filter(Participant.id == callback_data['participant_id']).first().expenses) > 0:
-        mes = emojize(f'Участника :bust_in_silhouette:<b>{name}</b> нельзя удалить, сначала удалите его траты:moneybag:')
+        mes = emojize(f'Участника :bust_in_silhouette:<b>{name}</b> нельзя удалить, сначала удалите его траты:moneybag:', language='alias')
     else:
         session.query(Exclusion).filter(Exclusion.participant_id == callback_data['participant_id']).delete()
         session.query(Participant).filter(Participant.id == callback_data['participant_id']).delete()
         session.commit()
-        mes = emojize(f'Участник <b>{name}</b> удалён.')
-    mes += emojize(f'\nУчастники события - <b>{await get_current_event_title(call.from_user.id)}</b>:')
+        mes = emojize(f'Участник <b>{name}</b> удалён.', language='alias')
+    mes += emojize(f'\nУчастники события - <b>{await get_current_event_title(call.from_user.id)}</b>:', language='alias')
     current_event = await get_current_event(call.from_user.id)
     for i in current_event.participants:
-        mes += emojize(f'\n:bust_in_silhouette: <em>{i.name}</em>')
+        mes += emojize(f'\n:bust_in_silhouette: <em>{i.name}</em>', language='alias')
     await call.message.edit_text(mes, reply_markup=kb_current_event)
     await call.answer()

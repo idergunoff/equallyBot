@@ -1,7 +1,8 @@
 from aiogram.dispatcher.filters.state import StatesGroup, State
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.utils.callback_data import CallbackData
-from aiogram.utils.emoji import emojize
+from emoji import emojize
+
 
 kb_start = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
 
@@ -14,25 +15,25 @@ cb_part_excl = CallbackData("part_excl", "part_id")
 cb_exp_excl = CallbackData("exp_excl", "exp_id")
 cb_excl_del = CallbackData('excl_del', 'excl_id')
 
-btn_new_event = InlineKeyboardButton(emojize('Новое событие:tada:'), callback_data='new_event')
-btn_del_event = InlineKeyboardButton(emojize('Удалить событие:wastebasket:'), callback_data='del_event')
+btn_new_event = InlineKeyboardButton(emojize('Новое событие:tada:', language='alias'), callback_data='new_event')
+btn_del_event = InlineKeyboardButton(emojize('Удалить событие:wastebasket:', language='alias'), callback_data='del_event')
 
-btn_participants = InlineKeyboardButton(emojize(':bust_in_silhouette:Участники'), callback_data='participants')
-btn_add_participant = InlineKeyboardButton(emojize(':plus::bust_in_silhouette:'), callback_data='add_participant')
-btn_del_participant = InlineKeyboardButton(emojize(':minus::bust_in_silhouette:'), callback_data='del_participant')
+btn_participants = InlineKeyboardButton(emojize(':bust_in_silhouette:Участники', language='alias'), callback_data='participants')
+btn_add_participant = InlineKeyboardButton(emojize(':plus::bust_in_silhouette:', language='alias'), callback_data='add_participant')
+btn_del_participant = InlineKeyboardButton(emojize(':minus::bust_in_silhouette:', language='alias'), callback_data='del_participant')
 
-btn_expenses = InlineKeyboardButton(emojize(':moneybag:Траты'), callback_data='expenses')
-btn_add_expense = InlineKeyboardButton(emojize(':plus::moneybag:'), callback_data='add_expense')
-btn_del_expense = InlineKeyboardButton(emojize(':minus::moneybag:'), callback_data='del_expense')
+btn_expenses = InlineKeyboardButton(emojize(':moneybag:Траты', language='alias'), callback_data='expenses')
+btn_add_expense = InlineKeyboardButton(emojize(':plus::moneybag:', language='alias'), callback_data='add_expense')
+btn_del_expense = InlineKeyboardButton(emojize(':minus::moneybag:', language='alias'), callback_data='del_expense')
 
-btn_exclusions = InlineKeyboardButton(emojize(':no_entry_sign:Исключения'), callback_data='exclusions')
-btn_add_exclusion = InlineKeyboardButton(emojize(':plus::no_entry_sign:'), callback_data='add_exclusion')
-btn_del_exclusion = InlineKeyboardButton(emojize(':minus::no_entry_sign:'), callback_data='del_exclusion')
+btn_exclusions = InlineKeyboardButton(emojize(':no_entry_sign:Исключения', language='alias'), callback_data='exclusions')
+btn_add_exclusion = InlineKeyboardButton(emojize(':plus::no_entry_sign:', language='alias'), callback_data='add_exclusion')
+btn_del_exclusion = InlineKeyboardButton(emojize(':minus::no_entry_sign:', language='alias'), callback_data='del_exclusion')
 
-btn_report = InlineKeyboardButton(emojize(':receipt:Отчёт'), callback_data='report')
+btn_report = InlineKeyboardButton(emojize(':receipt:Отчёт', language='alias'), callback_data='report')
 
-btn_back = InlineKeyboardButton(emojize('Назад:arrow_left:'), callback_data='back')
-btn_back_to_event = InlineKeyboardButton(emojize('Назад:arrow_left:'), callback_data='back_to_event')
+btn_back = InlineKeyboardButton(emojize('Назад:arrow_left:', language='alias'), callback_data='back')
+btn_back_to_event = InlineKeyboardButton(emojize('Назад:arrow_left:', language='alias'), callback_data='back_to_event')
 
 
 kb_current_event = InlineKeyboardMarkup(row_width=3)

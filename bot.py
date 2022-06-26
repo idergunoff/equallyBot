@@ -1,12 +1,9 @@
-from io import BytesIO
-
-
 from aiogram.utils import executor
 
 from participant import *
 from expense import *
 from exclusion import *
-from fruit import *
+
 
 
 # todo: пакетная загрузка участников и трат, кнопка назад при вводе, подпись в отчёт, донат
@@ -28,14 +25,14 @@ async def start(msg: types.Message):
     for i in events:
         kb_events.insert(InlineKeyboardButton(text=i.title, callback_data=cb_event.new(event_id=i.id)))
     kb_events.row(btn_new_event, btn_del_event)
-    mes = emojize(str(msg.from_user.first_name) + ", добро пожаловать в EquallyBot! Выберите событие или создайте новое.")
+    mes = emojize(str(msg.from_user.first_name) + ", добро пожаловать в EquallyBot! Выберите событие или создайте новое.", language='alias')
     await bot.send_message(msg.from_user.id, mes, reply_markup=kb_events)
 
 
 @dp.callback_query_handler(text='new_event')
 async def new_event(call: types.CallbackQuery):
     await EquallyStates.NEW_EVENT.set()
-    mes = emojize('Отправь название событя. Не больше 25 символов.')
+    mes = emojize('Отправь название событя. Не больше 25 символов.', language='alias')
     await bot.send_message(call.from_user.id, mes)
 
 
@@ -51,7 +48,7 @@ async def add_event(msg: types.Message, state: FSMContext):
         new_user_event = Event(title=msg.text, user_id=msg.from_user.id)
         session.add(new_user_event)
         session.commit()
-        mes = emojize(f'Вы добвили событие - <b>{msg.text}</b> .')
+        mes = emojize(f'Вы добвили событие - <b>{msg.text}</b> .', language='alias')
         await bot.send_message(msg.from_user.id, mes, parse_mode=types.ParseMode.HTML)
         await start(msg=msg)
 
@@ -80,7 +77,7 @@ async def del_event(call: types.CallbackQuery, callback_data: dict):
     for i in events:
         kb_events.insert(InlineKeyboardButton(text=i.title, callback_data=cb_event.new(event_id=i.id)))
     kb_events.row(btn_new_event, btn_del_event)
-    mes = emojize(f"Событие <b>{title_event}</b> удалено! Выберите событие или создайте новое.")
+    mes = emojize(f"Событие <b>{title_event}</b> удалено! Выберите событие или создайте новое.", language='alias')
     await call.message.edit_text(mes, parse_mode=types.ParseMode.HTML, reply_markup=kb_events)
     await call.answer()
 
@@ -92,14 +89,14 @@ async def back(call: types.CallbackQuery):
     for i in events:
         kb_events.insert(InlineKeyboardButton(text=i.title, callback_data=cb_event.new(event_id=i.id)))
     kb_events.row(btn_new_event, btn_del_event)
-    mes = emojize(f"Выберите событие или создайте новое.")
+    mes = emojize(f"Выберите событие или создайте новое.", language='alias')
     await call.message.edit_text(mes, parse_mode=types.ParseMode.HTML, reply_markup=kb_events)
     await call.answer()
 
 
 @dp.callback_query_handler(text='back_to_event')
 async def back_to_event(call: types.CallbackQuery):
-    mes = emojize(f'Выбрано событие - <b>{await get_current_event_title(call.from_user.id)}</b>')
+    mes = emojize(f'Выбрано событие - <b>{await get_current_event_title(call.from_user.id)}</b>', language='alias')
     await call.message.edit_text(mes, reply_markup=kb_current_event)
     await call.answer()
 
@@ -109,14 +106,14 @@ async def del_event(call: types.CallbackQuery, callback_data: dict):
     session.query(Event).filter(Event.user_id == call.from_user.id).update({'current_event': False}, synchronize_session='fetch')
     session.query(Event).filter(Event.id == callback_data['event_id']).update({'current_event': True}, synchronize_session='fetch')
     session.commit()
-    mes = emojize(f'Выбрано событие - <b>{await get_current_event_title(call.from_user.id)}</b>')
+    mes = emojize(f'Выбрано событие - <b>{await get_current_event_title(call.from_user.id)}</b>', language='alias')
     await call.message.edit_text(mes, reply_markup=kb_current_event)
     await call.answer()
 
 
 @dp.callback_query_handler(text='report')
 async def report(call: types.CallbackQuery):
-    mes = emojize(':receipt:<u><b>Отчёт:</b></u>')
+    mes = emojize(':receipt:<u><b>Отчёт:</b></u>', language='alias')
     current_event = await get_current_event(call.from_user.id)
     spent, debt = dict(), dict()
     for i in current_event.participants:
@@ -141,25 +138,25 @@ async def report(call: types.CallbackQuery):
     sum_expenses = 0
     for i in session.query(Participant.spent).filter(Participant.event_id == current_event.id).all():
         sum_expenses += i[0]
-    mes += emojize(f'\n:moneybag:Общая сумма: <em>{str(sum_expenses)}</em>')
+    mes += emojize(f'\n:moneybag:Общая сумма: <em>{str(sum_expenses)}</em>', language='alias')
     for name in debt:
         part = session.query(Participant).filter(Participant.event_id == current_event.id, Participant.name == name).first()
-        mes += emojize(f'\n\n<u>:bust_in_silhouette:<b>{name}</b></u>')
+        mes += emojize(f'\n\n<u>:bust_in_silhouette:<b>{name}</b></u>', language='alias')
         if len(part.exclusions) > 0:
             for i in part.exclusions:
-                mes += emojize(f'\n:no_entry_sign:<s>{i.expense.title} (<em>{str(i.expense.price)})</em></s>')
-        mes += emojize(f'\n:moneybag:Потратил: {str(part.spent)}\n:pinched_fingers:Доля трат: {str(part.debt)}')
+                mes += emojize(f'\n:no_entry_sign:<s>{i.expense.title} (<em>{str(i.expense.price)})</em></s>', language='alias')
+        mes += emojize(f'\n:moneybag:Потратил: {str(part.spent)}\n:pinched_fingers:Доля трат: {str(part.debt)}', language='alias')
         if part.spent > part.debt:
-            mes += emojize(f'\n{name}     :point_right:     :zero:')
+            mes += emojize(f'\n{name}     :point_right:     :zero:', language='alias')
         while debt[name] >= 0.1:
             for key in debt:
                 if spent[key] > 0:
                     diff = round((spent[key] - debt[name]), 2)
                     if diff > 0:
-                        mes += emojize(f'\n{name}     :point_right:     {key}     <b>{str(debt[name])}</b>:money_with_wings:')
+                        mes += emojize(f'\n{name}     :point_right:     {key}     <b>{str(debt[name])}</b>:money_with_wings:', language='alias')
                         spent[key], debt[name] = diff, 0
                     else:
-                        mes += emojize(f'\n{name}     :point_right:     {key}     <b>{str(spent[key])}</b>:money_with_wings:')
+                        mes += emojize(f'\n{name}     :point_right:     {key}     <b>{str(spent[key])}</b>:money_with_wings:', language='alias')
                         spent[key], debt[name] = 0, abs(diff)
                     break
     await call.message.edit_text(mes, reply_markup=kb_current_event)
