@@ -34,17 +34,29 @@ async def choose_exp_to_excl(call: types.CallbackQuery, callback_data: dict):
 
 @dp.callback_query_handler(cb_exp_excl.filter())
 async def add_exclusion(call: types.CallbackQuery, callback_data: dict):
-    exclusion_id = \
-    session.query(Exclusion.id).filter(Exclusion.event_id == await get_current_event_id(call.from_user.id)).order_by(
-        desc(Exclusion.date)).first()[0]
-    session.query(Exclusion).filter(Exclusion.id == exclusion_id).update({'expense_id': callback_data['exp_id']},
+    cur_excl = \
+    session.query(Exclusion).filter(Exclusion.event_id == await get_current_event_id(call.from_user.id)).order_by(
+        desc(Exclusion.date)).first()
+    session.query(Exclusion).filter(Exclusion.id == cur_excl.id).update({'expense_id': callback_data['exp_id']},
                                                                          synchronize_session='fetch')
     session.commit()
-    excl = session.query(Exclusion).filter(Exclusion.id == exclusion_id).first()
-    mes = emojize(f'Для :bust_in_silhouette:<b>{excl.participant.name}</b> \nдобавлено исключение '
-                  f'\n:no_entry_sign:<s>{excl.expense.title} (<em>{excl.expense.price}</em>)</s>')
+    if session.query(Exclusion).filter(Exclusion.participant_id == cur_excl.participant_id,
+                                           Exclusion.expense_id == callback_data['exp_id']).count() > 1:
+        session.query(Exclusion).filter(Exclusion.id == cur_excl.id).delete()
+        session.commit()
+        mes = emojize('Данное исключение уже существует.')
+    elif session.query(Exclusion).filter(Exclusion.expense_id == callback_data['exp_id']).count() == \
+        session.query(Participant).filter(Participant.event_id == await get_current_event_id(call.from_user.id)).count():
+        session.query(Exclusion).filter(Exclusion.id == cur_excl.id).delete()
+        session.commit()
+        mes = emojize('Исключение не может быть добавлено для всех участников.')
+    else:
+        excl = session.query(Exclusion).filter(Exclusion.id == cur_excl.id).first()
+        mes = emojize(f'Для :bust_in_silhouette:<b>{excl.participant.name}</b> \nдобавлено исключение '
+                      f'\n:no_entry_sign:<s>{excl.expense.title} (<em>{excl.expense.price}</em>)</s>')
     await call.message.edit_text(mes, reply_markup=kb_current_event)
     await call.answer()
+
 
 
 @dp.callback_query_handler(text='exclusions')

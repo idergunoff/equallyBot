@@ -3,6 +3,7 @@ from aiogram.dispatcher import FSMContext
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.contrib.middlewares.logging import LoggingMiddleware
 from aiogram import types
+from aiogram.utils.exceptions import MessageCantBeDeleted
 
 from model import *
 from datetime import datetime

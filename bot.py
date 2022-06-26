@@ -9,6 +9,8 @@ from exclusion import *
 from fruit import *
 
 
+# todo: пакетная загрузка участников и трат, кнопка назад при вводе, подпись в отчёт, донат
+
 @dp.message_handler(commands=['start'])
 async def start(msg: types.Message):
     if not session.query(User).filter(User.telegram_id == msg.from_user.id).first():
@@ -68,7 +70,9 @@ async def choose_event_for_del(call: types.CallbackQuery):
 @dp.callback_query_handler(cb_event_del.filter())
 async def del_event(call: types.CallbackQuery, callback_data: dict):
     title_event = session.query(Event.title).filter(Event.id == callback_data['event_id']).first()[0]
-    # todo: удаление каскадно
+    session.query(Exclusion).filter(Exclusion.event_id == callback_data['event_id']).delete()
+    session.query(Expense).filter(Expense.event_id == callback_data['event_id']).delete()
+    session.query(Participant).filter(Participant.event_id == callback_data['event_id']).delete()
     session.query(Event).filter(Event.id == callback_data['event_id']).delete()
     session.commit()
     kb_events = InlineKeyboardMarkup(row_width=3)
@@ -112,7 +116,7 @@ async def del_event(call: types.CallbackQuery, callback_data: dict):
 
 @dp.callback_query_handler(text='report')
 async def report(call: types.CallbackQuery):
-    mes = emojize(':receipt:Отчёт:')
+    mes = emojize(':receipt:<u><b>Отчёт:</b></u>')
     current_event = await get_current_event(call.from_user.id)
     spent, debt = dict(), dict()
     for i in current_event.participants:
@@ -126,7 +130,7 @@ async def report(call: types.CallbackQuery):
                 debt[j.name] = round((debt[j.name] + i.price / count_part), 2)
     for name in debt:
         session.query(Participant).filter(Participant.event_id == current_event.id, Participant.name == name).\
-            update({'spent': spent[name], 'debt': debt[name]}, synchronize_session='fetch')
+            update({'spent': round(spent[name], 2), 'debt': round(debt[name], 2)}, synchronize_session='fetch')
         if spent[name] > 0:
             diff = round((spent[name] - debt[name]), 2)
             if diff > 0:
@@ -134,6 +138,10 @@ async def report(call: types.CallbackQuery):
             else:
                 spent[name], debt[name] = 0, abs(diff)
     session.commit()
+    sum_expenses = 0
+    for i in session.query(Participant.spent).filter(Participant.event_id == current_event.id).all():
+        sum_expenses += i[0]
+    mes += emojize(f'\n:moneybag:Общая сумма: <em>{str(sum_expenses)}</em>')
     for name in debt:
         part = session.query(Participant).filter(Participant.event_id == current_event.id, Participant.name == name).first()
         mes += emojize(f'\n\n<u>:bust_in_silhouette:<b>{name}</b></u>')
@@ -157,14 +165,6 @@ async def report(call: types.CallbackQuery):
     await call.message.edit_text(mes, reply_markup=kb_current_event)
     await call.answer()
 
-# @dp.message_handler(content_types=['photo'])
-# async def photo_handler(msg: types.Message):
-#     file_id = msg.photo[-1].file_id
-#     print(file_id)
-#     file = await bot.get_file(file_id)
-#     file_path = file.file_path
-#     print(file_path)
-#     await bot.send_photo(msg.from_user.id, file_id)
 
 
 

@@ -16,12 +16,16 @@ async def choose_part_to_exp(call: types.CallbackQuery):
 
 @dp.callback_query_handler(cb_part_exp.filter())
 async def send_title_exp(call: types.CallbackQuery, callback_data: dict):
+    name = session.query(Participant.name).filter(Participant.id == callback_data['part_id']).first()[0]
     new_expense = Expense(participant_id=callback_data['part_id'], event_id=await get_current_event_id(call.from_user.id), date=datetime.today())
     session.add(new_expense)
     session.commit()
     await EquallyStates.NEW_TITLE.set()
-    await call.message.delete()
-    mes = emojize('Отправь название траты:')
+    try:
+        await call.message.delete()
+    except MessageCantBeDeleted:
+        pass
+    mes = emojize(f'Отправь название траты участника :bust_in_silhouette:<b>{name}</b>:')
     await bot.send_message(call.from_user.id, mes)
 
 

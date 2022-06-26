@@ -6,7 +6,10 @@ from func import *
 @dp.callback_query_handler(text='add_participant')
 async def add_participant(call: types.CallbackQuery):
     await EquallyStates.NEW_PARTICIPANT.set()
-    await call.message.delete()
+    try:
+        await call.message.delete()
+    except MessageCantBeDeleted:
+        pass
     mes = emojize(f'Отправь имя участника события <b>{await get_current_event_title(call.from_user.id)}</b>.')
     await bot.send_message(call.from_user.id, mes)
 
@@ -57,6 +60,7 @@ async def del_event(call: types.CallbackQuery, callback_data: dict):
     if len(session.query(Participant).filter(Participant.id == callback_data['participant_id']).first().expenses) > 0:
         mes = emojize(f'Участника :bust_in_silhouette:<b>{name}</b> нельзя удалить, сначала удалите его траты:moneybag:')
     else:
+        session.query(Exclusion).filter(Exclusion.participant_id == callback_data['participant_id']).delete()
         session.query(Participant).filter(Participant.id == callback_data['participant_id']).delete()
         session.commit()
         mes = emojize(f'Участник <b>{name}</b> удалён.')
