@@ -14,6 +14,13 @@ async def add_participant(call: types.CallbackQuery):
     await bot.send_message(call.from_user.id, mes)
 
 
+@dp.callback_query_handler(text='add_participants')
+async def add_participants(call: types.CallbackQuery):
+    mes = emojize(f'Эта штука пока не работает', language='alias')
+    await call.message.edit_text(mes, reply_markup=kb_current_event)
+    await call.answer()
+
+
 @dp.message_handler(state=EquallyStates.NEW_PARTICIPANT)
 async def add_participant_db(msg: types.Message, state: FSMContext):
     event_id = await get_current_event_id(msg.from_user.id)

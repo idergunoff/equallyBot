@@ -14,6 +14,13 @@ async def choose_part_to_exp(call: types.CallbackQuery):
     await call.answer()
 
 
+@dp.callback_query_handler(text='add_expenses')
+async def add_expenses(call: types.CallbackQuery):
+    mes = emojize(f'Эта штука пока не работает', language='alias')
+    await call.message.edit_text(mes, reply_markup=kb_current_event)
+    await call.answer()
+
+
 @dp.callback_query_handler(cb_part_exp.filter())
 async def send_title_exp(call: types.CallbackQuery, callback_data: dict):
     name = session.query(Participant.name).filter(Participant.id == callback_data['part_id']).first()[0]
