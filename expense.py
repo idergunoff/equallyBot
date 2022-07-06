@@ -16,8 +16,12 @@ async def choose_part_to_exp(call: types.CallbackQuery):
 
 @dp.callback_query_handler(text='add_expenses')
 async def add_expenses(call: types.CallbackQuery):
-    mes = emojize(f'Эта штука пока не работает', language='alias')
-    await call.message.edit_text(mes, reply_markup=kb_current_event)
+    kb_part_exps = InlineKeyboardMarkup(row_width=1)
+    current_event = await get_current_event(call.from_user.id)
+    for i in current_event.participants:
+        kb_part_exps.insert(InlineKeyboardButton(text=i.name, callback_data=cb_part_exps.new(part_id=i.id)))
+    kb_part_exps.row(btn_back_to_event)
+    await call.message.edit_text('Загрузка трат списком. Кто платил?', reply_markup=kb_part_exps)
     await call.answer()
 
 
@@ -33,6 +37,22 @@ async def send_title_exp(call: types.CallbackQuery, callback_data: dict):
     except MessageCantBeDeleted:
         pass
     mes = emojize(f'Отправь название траты участника :bust_in_silhouette:<b>{name}</b>:', language='alias')
+    await bot.send_message(call.from_user.id, mes)
+
+
+@dp.callback_query_handler(cb_part_exps.filter())
+async def send_list_expenses(call: types.CallbackQuery, callback_data: dict):
+    name = session.query(Participant.name).filter(Participant.id == callback_data['part_id']).first()[0]
+    new_expense = Expense(participant_id=callback_data['part_id'], event_id=await get_current_event_id(call.from_user.id), date=datetime.today())
+    session.add(new_expense)
+    session.commit()
+    await EquallyStates.NEW_EXPENSES.set()
+    try:
+        await call.message.delete()
+    except MessageCantBeDeleted:
+        pass
+    mes = emojize(f'Отправь траты участника :bust_in_silhouette:<b>{name}</b>: списком.\nКаждую трату записывайте с новой строки, '
+                  f'название траты и ее стоимость разделяйте значком - @', language='alias')
     await bot.send_message(call.from_user.id, mes)
 
 
@@ -52,11 +72,36 @@ async def add_price_expense(msg: types.Message, state: FSMContext):
     await state.finish()
     expense_id = session.query(Expense.id).filter(Expense.event_id == await get_current_event_id(msg.from_user.id)).\
         order_by(desc(Expense.date)).first()[0]
-    price = float(msg.text.replace(',', '.', 1))
+    price = round(float(eval(msg.text.replace(',', '.'))), 2)
     session.query(Expense).filter(Expense.id == expense_id).update({'price': price}, synchronize_session='fetch')
     session.commit()
     expense = session.query(Expense).filter(Expense.id == expense_id).first()
     mes = emojize(f'Добавлена трата:moneybag: <b>{expense.title}</b> - <em>{str(expense.price)}</em> участника <b>{expense.participant.name}</b>', language='alias')
+    await bot.send_message(msg.from_user.id, mes, reply_markup=kb_current_event)
+
+
+@dp.message_handler(state=EquallyStates.NEW_EXPENSES)
+async def add_title_expense(msg: types.Message, state: FSMContext):
+    await state.finish()
+    part_id = session.query(Expense.participant_id).filter(Expense.event_id == await get_current_event_id(msg.from_user.id)).\
+        order_by(desc(Expense.date)).first()[0]
+    expense_id = session.query(Expense.id).filter(Expense.event_id == await get_current_event_id(msg.from_user.id)). \
+        order_by(desc(Expense.date)).first()[0]
+    session.query(Expense).filter(Expense.id == expense_id).delete()
+    session.commit()
+    add_expense = []
+    list_expenses = msg.text.split('\n')
+    for i in list_expenses:
+        i_exp = i.split('@')
+        i_price = round(float(eval(i_exp[1].replace(',', '.'))), 2)
+        new_expense = Expense(title=i_exp[0], price=i_price, participant_id=part_id,
+                              event_id=await get_current_event_id(msg.from_user.id), date=datetime.today())
+        session.add(new_expense)
+        add_expense.append([i_exp[0], i_price])
+    part_name = session.query(Participant.name).filter(Participant.id == part_id).first()[0]
+    mes = emojize(f'<u>Добавлены траты участника <b>{part_name}</b>:</u>')
+    for i in add_expense:
+        mes += emojize(f'\n:moneybag: <b>{i[0]}</b> - <em>{str(i[1])}</em>', language='alias')
     await bot.send_message(msg.from_user.id, mes, reply_markup=kb_current_event)
 
 

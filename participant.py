@@ -16,9 +16,35 @@ async def add_participant(call: types.CallbackQuery):
 
 @dp.callback_query_handler(text='add_participants')
 async def add_participants(call: types.CallbackQuery):
-    mes = emojize(f'Эта штука пока не работает', language='alias')
-    await call.message.edit_text(mes, reply_markup=kb_current_event)
+    await EquallyStates.NEW_PARTICIPANTS.set()
+    mes = emojize(f'Отправь участников события <b>{await get_current_event_title(call.from_user.id)}</b> списком, каждого с новой строки', language='alias')
+    await call.message.edit_text(mes)
     await call.answer()
+    
+    
+@dp.message_handler(state=EquallyStates.NEW_PARTICIPANTS)
+async def add_participants_db(msg: types.Message, state: FSMContext):
+    await state.finish()
+    event_id = await get_current_event_id(msg.from_user.id)
+    list_names = msg.text.split('\n')
+    list_add_names, no_add_names = [], []
+    for i in list_names:
+        check_name = session.query(Participant).filter(Participant.name == i, Participant.event_id == event_id).count()
+        if check_name > 0:
+            no_add_names.append(i)
+        else:
+            new_participant = Participant(name=i, event_id=event_id)
+            session.add(new_participant)
+            list_add_names.append(i)
+        session.commit()
+    mes = emojize(f'<u>Список добавленных участников события - <b>{await get_current_event_title(msg.from_user.id)}</b>:</u>', language='alias')
+    for i in list_add_names:
+        mes += emojize(f'\n:bust_in_silhouette:{i}', language='alias')
+    if len(no_add_names) > 0:
+        mes += emojize(f'\n\n<u>Повторяющиеся участники:</u>')
+        for i in no_add_names:
+            mes += emojize(f'\n<s>:bust_in_silhouette:{i}</s>', language='alias')
+    await bot.send_message(msg.from_user.id, mes, reply_markup=kb_current_event)
 
 
 @dp.message_handler(state=EquallyStates.NEW_PARTICIPANT)

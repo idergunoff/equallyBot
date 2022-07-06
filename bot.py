@@ -6,7 +6,7 @@ from exclusion import *
 
 
 
-# todo: пакетная загрузка участников и трат, кнопка назад при вводе, подпись в отчёт, донат
+# todo: пакетная загрузка участников и трат, кнопка назад при вводе, подпись в отчёт, донат 
 
 @dp.message_handler(commands=['start'])
 async def start(msg: types.Message):
@@ -159,6 +159,7 @@ async def report(call: types.CallbackQuery):
                         mes += emojize(f'\n{name}     :point_right:     {key}     <b>{str(spent[key])}</b>:money_with_wings:', language='alias')
                         spent[key], debt[name] = 0, abs(diff)
                     break
+    mes += emojize('\n\nПосчитано с помощью @EquallyBot')
     await call.message.edit_text(mes, reply_markup=kb_current_event)
     await call.answer()
 
