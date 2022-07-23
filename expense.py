@@ -9,7 +9,7 @@ async def choose_part_to_exp(call: types.CallbackQuery):
     current_event = await get_current_event(call.from_user.id)
     for i in current_event.participants:
         kb_part_exp.insert(InlineKeyboardButton(text=i.name, callback_data=cb_part_exp.new(part_id=i.id)))
-    kb_part_exp.row(btn_back_to_event)
+    kb_part_exp.row(btn_back_expense)
     await call.message.edit_text('Кто платил?', reply_markup=kb_part_exp)
     await call.answer()
 
@@ -20,7 +20,7 @@ async def add_expenses(call: types.CallbackQuery):
     current_event = await get_current_event(call.from_user.id)
     for i in current_event.participants:
         kb_part_exps.insert(InlineKeyboardButton(text=i.name, callback_data=cb_part_exps.new(part_id=i.id)))
-    kb_part_exps.row(btn_back_to_event)
+    kb_part_exps.row(btn_back_expense)
     await call.message.edit_text('Загрузка трат списком. Кто платил?', reply_markup=kb_part_exps)
     await call.answer()
 
@@ -77,7 +77,7 @@ async def add_price_expense(msg: types.Message, state: FSMContext):
     session.commit()
     expense = session.query(Expense).filter(Expense.id == expense_id).first()
     mes = emojize(f'Добавлена трата:moneybag: <b>{expense.title}</b> - <em>{str(expense.price)}</em> участника <b>{expense.participant.name}</b>', language='alias')
-    await bot.send_message(msg.from_user.id, mes, reply_markup=kb_current_event)
+    await bot.send_message(msg.from_user.id, mes, reply_markup=kb_expense)
 
 
 @dp.message_handler(state=EquallyStates.NEW_EXPENSES)
@@ -102,7 +102,7 @@ async def add_title_expense(msg: types.Message, state: FSMContext):
     mes = emojize(f'<u>Добавлены траты участника <b>{part_name}</b>:</u>')
     for i in add_expense:
         mes += emojize(f'\n:moneybag: <b>{i[0]}</b> - <em>{str(i[1])}</em>', language='alias')
-    await bot.send_message(msg.from_user.id, mes, reply_markup=kb_current_event)
+    await bot.send_message(msg.from_user.id, mes, reply_markup=kb_expense)
 
 
 @dp.callback_query_handler(text='expenses')
@@ -120,7 +120,7 @@ async def show_expenses(call: types.CallbackQuery):
             for j in i.expenses:
                 mes += emojize(f'\n:moneybag: {j.title} - <em>{str(j.price)}</em>', language='alias')
     mes += emojize(f'\n\nОбщая сумма трат:moneybag: - <em>{str(round(all_sum, 2))}</em>', language='alias')
-    await call.message.edit_text(mes, reply_markup=kb_current_event)
+    await call.message.edit_text(mes, reply_markup=kb_expense)
     await call.answer()
 
 
@@ -131,7 +131,7 @@ async def choose_expenses_for_del(call: types.CallbackQuery):
     for i in current_event.expenses:
         text_button = emojize(f':bust_in_silhouette:{i.participant.name} :moneybag:{i.title} - {str(i.price)}', language='alias')
         kb_exp_del.insert(InlineKeyboardButton(text=text_button, callback_data=cb_exp_del.new(exp_id=i.id)))
-    kb_exp_del.row(btn_back_to_event)
+    kb_exp_del.row(btn_back_expense)
     await call.message.edit_text('Выберите трату для удаления:', reply_markup=kb_exp_del)
     await call.answer()
 
@@ -143,5 +143,11 @@ async def del_expense(call: types.CallbackQuery, callback_data: dict):
     session.query(Expense).filter(Expense.id == callback_data['exp_id']).delete()
     session.commit()
     mes = emojize(f'Трата участника :bust_in_silhouette:<b>{name}</b> :moneybag:<u>{title}</u> (<em>{str(price)}</em>) удалена.', language='alias')
-    await call.message.edit_text(mes, reply_markup=kb_current_event)
+    await call.message.edit_text(mes, reply_markup=kb_expense)
     await call.answer()
+    
+    
+@dp.callback_query_handler(text='back_expense')
+async def back_to_expense(call: types.CallbackQuery):
+    await show_expenses(call=call)
+    

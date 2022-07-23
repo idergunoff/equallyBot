@@ -6,7 +6,7 @@ from exclusion import *
 
 
 
-# todo: пакетная загрузка участников и трат, кнопка назад при вводе, подпись в отчёт, донат 
+# todo: донат
 
 @dp.message_handler(commands=['start'])
 async def start(msg: types.Message):
@@ -142,13 +142,24 @@ async def report(call: types.CallbackQuery):
     for name in debt:
         part = session.query(Participant).filter(Participant.event_id == current_event.id, Participant.name == name).first()
         mes += emojize(f'\n\n<u>:bust_in_silhouette:<b>{name}</b></u>', language='alias')
-        if len(part.exclusions) > 0:
-            for i in part.exclusions:
-                mes += emojize(f'\n:no_entry_sign:<s>{i.expense.title} (<em>{str(i.expense.price)})</em></s>', language='alias')
         mes += emojize(f'\n:moneybag:Потратил: {str(part.spent)}\n:pinched_fingers:Доля трат: {str(part.debt)}', language='alias')
+        if len(part.exclusions) > 0:
+            mes += emojize('\n:no_entry_sign:<b><u>Исключения</u></b>:no_entry_sign:', language='alias')
+            if len(part.exclusions) > len(current_event.expenses) / 2:
+                mes += emojize('\n:no_entry_sign:<b><s>Всё</s></b> кроме:', language='alias')
+                list_exp_id = []
+                for excl in part.exclusions:
+                    list_exp_id.append(excl.expense.id)
+                for exp in current_event.expenses:
+                    if exp.id not in list_exp_id:
+                        mes += emojize(f'\n:moneybag: {exp.title} - <em>{str(exp.price)}</em>', language='alias')
+            else:
+                for i in part.exclusions:
+                    mes += emojize(f'\n:no_entry_sign:<s>{i.expense.title} (<em>{str(i.expense.price)})</em></s>', language='alias')
+        mes += emojize('\n:warning:')
         if part.spent > part.debt:
             mes += emojize(f'\n{name}     :point_right:     :zero:', language='alias')
-        while debt[name] >= 0.1:
+        while debt[name] >= 0.25:
             for key in debt:
                 if spent[key] > 0:
                     diff = round((spent[key] - debt[name]), 2)

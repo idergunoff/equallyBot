@@ -44,7 +44,7 @@ async def add_participants_db(msg: types.Message, state: FSMContext):
         mes += emojize(f'\n\n<u>Повторяющиеся участники:</u>')
         for i in no_add_names:
             mes += emojize(f'\n<s>:bust_in_silhouette:{i}</s>', language='alias')
-    await bot.send_message(msg.from_user.id, mes, reply_markup=kb_current_event)
+    await bot.send_message(msg.from_user.id, mes, reply_markup=kb_participant)
 
 
 @dp.message_handler(state=EquallyStates.NEW_PARTICIPANT)
@@ -63,7 +63,7 @@ async def add_participant_db(msg: types.Message, state: FSMContext):
         current_event = await get_current_event(msg.from_user.id)
         for i in current_event.participants:
             mes += emojize(f'\n:bust_in_silhouette: <em>{i.name}</em>', language='alias')
-        await bot.send_message(msg.from_user.id, mes, reply_markup=kb_current_event)
+        await bot.send_message(msg.from_user.id, mes, reply_markup=kb_participant)
 
 
 @dp.callback_query_handler(text='participants')
@@ -72,7 +72,7 @@ async def show_participants(call: types.CallbackQuery):
     current_event = await get_current_event(call.from_user.id)
     for i in current_event.participants:
         mes += emojize(f'\n:bust_in_silhouette: <em>{i.name}</em>', language='alias')
-    await call.message.edit_text(mes, reply_markup=kb_current_event)
+    await call.message.edit_text(mes, reply_markup=kb_participant)
     await call.answer()
 
 
@@ -82,7 +82,7 @@ async def choose_participant_for_del(call: types.CallbackQuery):
     current_event = await get_current_event(call.from_user.id)
     for i in current_event.participants:
         kb_participant_del.insert(InlineKeyboardButton(text=i.name, callback_data=cb_participant_del.new(participant_id=i.id)))
-    kb_participant_del.row(btn_back_to_event)
+    kb_participant_del.row(btn_back_part)
     await call.message.edit_text('Выберите участника для удаления:', reply_markup=kb_participant_del)
     await call.answer()
 
@@ -101,5 +101,12 @@ async def del_event(call: types.CallbackQuery, callback_data: dict):
     current_event = await get_current_event(call.from_user.id)
     for i in current_event.participants:
         mes += emojize(f'\n:bust_in_silhouette: <em>{i.name}</em>', language='alias')
-    await call.message.edit_text(mes, reply_markup=kb_current_event)
+    await call.message.edit_text(mes, reply_markup=kb_participant)
     await call.answer()
+    
+    
+@dp.callback_query_handler(text='back_part')
+async def back_to_part(call: types.CallbackQuery):
+    await show_participants(call=call)
+    
+    
