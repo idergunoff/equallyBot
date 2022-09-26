@@ -3,7 +3,7 @@ from aiogram.utils import executor
 from participant import *
 from expense import *
 from exclusion import *
-
+from help import *
 
 
 # todo: донат

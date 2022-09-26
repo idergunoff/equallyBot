@@ -16,7 +16,7 @@ cb_exp_except = CallbackData("exp_except", "exp_id", "part_id")    # трата 
 cb_exp_del = CallbackData('exp_del', 'exp_id')  # трата для удаления
 cb_part_excl = CallbackData("part_excl", "part_id") # участник для исключения
 cb_part_excl_del = CallbackData("part_excl_del", "part_id") # участник для удаления исключения
-cb_exp_excl = CallbackData("exp_excl", "exp_id")    # трата для исключения
+cb_exp_excl = CallbackData("exp_excl", "exp_id", "part_id")    # трата для исключения
 cb_excl_del = CallbackData('excl_del', 'excl_id')   # исключение для удаления
 cb_cancel_except = CallbackData('cancel_except', 'part_id') # участник для отмены исключения "всё кроме"
 
@@ -50,6 +50,12 @@ btn_back_expense = InlineKeyboardButton(emojize('Назад:moneybag::arrow_left
 btn_back_exclusion = InlineKeyboardButton(emojize('Назад:no_entry_sign::arrow_left:', language='alias'), callback_data='back_exclusion')
 btn_done_except = InlineKeyboardButton(emojize('Готово!:thumbs_up:', language='alias'), callback_data='done_except')
 
+btn_help_part = InlineKeyboardButton(emojize(':red_question_mark: :bust_in_silhouette:Участники :red_question_mark:', language='alias'), callback_data='help_part')
+btn_help_expense = InlineKeyboardButton(emojize(':red_question_mark: :moneybag:Траты :red_question_mark:', language='alias'), callback_data='help_expense')
+btn_help_exclusion = InlineKeyboardButton(emojize(':red_question_mark: :no_entry_sign:Исключения :red_question_mark:', language='alias'), callback_data='help_exclusion')
+btn_help_about = InlineKeyboardButton(emojize(':red_question_mark: :robot:О боте :red_question_mark:', language='alias'), callback_data='help_about')
+btn_help_back = InlineKeyboardButton(emojize(':arrow_left:Назад', language='alias'), callback_data='help_back')
+
 
 kb_current_event = InlineKeyboardMarkup(row_width=2)
 kb_current_event.add(btn_participants).add(btn_expenses).add(btn_exclusions)
@@ -61,6 +67,9 @@ kb_exclusion = InlineKeyboardMarkup()
 kb_participant.add(btn_participants).add(btn_add_participant).add(btn_add_participants).add(btn_del_participant).add(btn_back_to_event)
 kb_expense.add(btn_expenses).add(btn_add_expense).add(btn_add_expenses).add(btn_del_expense).add(btn_back_to_event)
 kb_exclusion.add(btn_exclusions).add(btn_add_exclusion).add(btn_add_except).add(btn_del_exclusion).add(btn_back_to_event)
+
+kb_help = InlineKeyboardMarkup()
+kb_help.add(btn_help_part).add(btn_help_expense).add(btn_help_exclusion).row(btn_help_about, btn_help_back)
 
 class EquallyStates(StatesGroup):
     NEW_EVENT = State()

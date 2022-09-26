@@ -20,38 +20,31 @@ async def choose_part_to_excl(call: types.CallbackQuery):
 @logger.catch
 async def choose_exp_to_excl(call: types.CallbackQuery, callback_data: dict):
     logger.info(f'User "{call.from_user.id} - {call.from_user.username}" CHOOSE PART')
-    rnd_expense = session.query(Expense.id).filter(Expense.event_id == await get_current_event_id(call.from_user.id)).first()[0]
-    new_exclusion = Exclusion(participant_id=callback_data['part_id'], expense_id=rnd_expense,
-                          event_id=await get_current_event_id(call.from_user.id), date=datetime.today())
-    session.add(new_exclusion)
-    session.commit()
     name_excl = session.query(Participant.name).filter(Participant.id == callback_data['part_id']).first()[0]
     kb_exp_excl = InlineKeyboardMarkup(row_width=1)
+    kb_exp_excl.insert(btn_done_except)
     current_event = await get_current_event(call.from_user.id)
     for i in current_event.expenses:
-        text_button = emojize(f':bust_in_silhouette:{i.participant.name} :moneybag:{i.title} - {str(i.price)}', language='alias')
-        kb_exp_excl.insert(InlineKeyboardButton(text=text_button, callback_data=cb_exp_excl.new(exp_id=i.id)))
-    await call.message.edit_text(emojize(f'Выберите трату-исключение для :bust_in_silhouette:<b>{name_excl}</b>:', language='alias'),
-                                 reply_markup=kb_exp_excl)
+        if session.query(Exclusion).filter(
+                Exclusion.participant_id == callback_data['part_id'],
+                Exclusion.expense_id == i.id).count() == 0:
+            text_button = emojize(f':bust_in_silhouette:{i.participant.name} :moneybag:{i.title} - {str(i.price)}', language='alias')
+            kb_exp_excl.insert(InlineKeyboardButton(text=text_button, callback_data=cb_exp_excl.new(exp_id=i.id, part_id=callback_data['part_id'])))
+    await call.message.edit_text(emojize(f'Выберите траты-исключения для :bust_in_silhouette:<b>{name_excl}</b> и '
+                                         f'нажмите <b>Готово</b>:', language='alias'), reply_markup=kb_exp_excl)
     await call.answer()
 
 
 @dp.callback_query_handler(cb_exp_excl.filter())
 @logger.catch
 async def add_exclusion(call: types.CallbackQuery, callback_data: dict):
-    cur_excl = \
-    session.query(Exclusion).filter(Exclusion.event_id == await get_current_event_id(call.from_user.id)).order_by(
-        desc(Exclusion.date)).first()
-    session.query(Exclusion).filter(Exclusion.id == cur_excl.id).update({'expense_id': callback_data['exp_id']},
-                                                                         synchronize_session='fetch')
+    new_exclusion = Exclusion(participant_id=callback_data['part_id'], expense_id=callback_data['exp_id'],
+                          event_id=await get_current_event_id(call.from_user.id), date=datetime.today())
+    session.add(new_exclusion)
     session.commit()
-    if session.query(Exclusion).filter(Exclusion.participant_id == cur_excl.participant_id,
-                                           Exclusion.expense_id == callback_data['exp_id']).count() > 1:
-        session.query(Exclusion).filter(Exclusion.id == cur_excl.id).delete()
-        session.commit()
-        logger.error(f'User "{call.from_user.id} - {call.from_user.username}" PART HAVE THIS EXCL')
-        mes = emojize('Данное исключение уже существует.', language='alias')
-    elif session.query(Exclusion).filter(Exclusion.expense_id == callback_data['exp_id']).count() == \
+    cur_excl = session.query(Exclusion).filter(
+        Exclusion.event_id == await get_current_event_id(call.from_user.id)).order_by(desc(Exclusion.date)).first()
+    if session.query(Exclusion).filter(Exclusion.expense_id == callback_data['exp_id']).count() == \
         session.query(Participant).filter(Participant.event_id == await get_current_event_id(call.from_user.id)).count():
         session.query(Exclusion).filter(Exclusion.id == cur_excl.id).delete()
         session.commit()
@@ -61,7 +54,20 @@ async def add_exclusion(call: types.CallbackQuery, callback_data: dict):
         excl = session.query(Exclusion).filter(Exclusion.id == cur_excl.id).first()
         mes = emojize(f'Для :bust_in_silhouette:<b>{excl.participant.name}</b> \nдобавлено исключение '
                       f'\n:no_entry_sign:<s>{excl.expense.title} (<em>{excl.expense.price}</em>)</s>', language='alias')
-    await call.message.edit_text(mes, reply_markup=kb_exclusion)
+    name_excl = session.query(Participant.name).filter(Participant.id == callback_data['part_id']).first()[0]
+    kb_exp_excl = InlineKeyboardMarkup(row_width=1)
+    kb_exp_excl.insert(btn_done_except)
+    current_event = await get_current_event(call.from_user.id)
+    for i in current_event.expenses:
+        if session.query(Exclusion).filter(
+                Exclusion.participant_id == callback_data['part_id'],
+                Exclusion.expense_id == i.id).count() == 0:
+            text_button = emojize(f':bust_in_silhouette:{i.participant.name} :moneybag:{i.title} - {str(i.price)}',
+                                  language='alias')
+            kb_exp_excl.insert(InlineKeyboardButton(text=text_button,
+                                                    callback_data=cb_exp_excl.new(exp_id=i.id, part_id= callback_data['part_id'])))
+    mes += emojize(f'\n\nВыберите траты-исключения для :bust_in_silhouette:<b>{name_excl}</b> и нажмите <b>Готово</b>:', language='alias')
+    await call.message.edit_text(mes, reply_markup=kb_exp_excl)
     await call.answer()
     logger.success(f'User "{call.from_user.id} - {call.from_user.username}" ADD EXCL')
 
@@ -76,8 +82,17 @@ async def show_exclusions(call: types.CallbackQuery):
     for i in current_event.participants:
         if len(i.exclusions) > 0:
             mes += emojize(f'\n\n<u>:bust_in_silhouette:<b>{i.name}</b></u>', language='alias')
-            for j in i.exclusions:
-                mes += emojize(f'\n:no_entry_sign: <s>{j.expense.title} (<em>{str(j.expense.price)}</em>)</s>', language='alias')
+            if len(i.exclusions) > len(current_event.expenses) / 2:
+                mes += emojize('\n:no_entry_sign:<b><s>Всё</s></b> кроме:', language='alias')
+                list_exp_id = []
+                for excl in i.exclusions:
+                    list_exp_id.append(excl.expense.id)
+                for exp in current_event.expenses:
+                    if exp.id not in list_exp_id:
+                        mes += emojize(f'\n:moneybag: {exp.title} - <em>{str(exp.price)}</em>', language='alias')
+            else:
+                for j in i.exclusions:
+                    mes += emojize(f'\n:no_entry_sign: <s>{j.expense.title} (<em>{str(j.expense.price)}</em>)</s>', language='alias')
     await call.message.edit_text(mes, reply_markup=kb_exclusion)
     await call.answer()
 
